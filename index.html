@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simulador de frete Marítimo - Shipping</title>
+<style>
+:root {
+  --paper: #f3efe6;
+  --paper-deep: #e7e0d2;
+  --sheet: #fffdf8;
+  --ink: #1a2330;
+  --navy: #16324f;
+  --sea: #1f6f62;
+  --sea-soft: #e5f2ef;
+  --muted: #5e675f;
+  --line: #ddd4c4;
+  --brass: #8d6428;
+  --danger: #8c3a32;
+  --danger-soft: #f8ebe8;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: "Segoe UI", "Source Sans 3", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 560; color: var(--navy); }
+h1 { font-size: clamp(1.7rem, 3vw, 2.4rem); line-height: 1.15; margin: 0; }
+h2 { font-size: 1.35rem; margin: 0 0 0.75rem; }
+p { margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+#app { max-width: 1440px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 1rem; margin-bottom: 1rem; }
+.brand { display: flex; gap: 0.75rem; align-items: center; }
+.mark {
+  width: 2.75rem; height: 2.75rem; border-radius: 1rem; background: var(--navy); flex: none;
+  background-image: linear-gradient(160deg, #2a5278, var(--navy));
+  box-shadow: inset 0 -8px 0 var(--sea);
+}
+.kicker { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sea); font-weight: 700; margin: 0 0 0.2rem; }
+.lead, .note { color: var(--muted); font-size: 0.92rem; line-height: 1.4; }
+.lead { max-width: 42rem; margin-top: 0.75rem; }
+.presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.presets button, .actions button {
+  border: 1px solid var(--line); background: var(--sheet); color: var(--navy);
+  border-radius: 999px; padding: 0.45rem 0.8rem;
+}
+.presets button.ghost { background: transparent; color: var(--muted); }
+.layout { display: grid; gap: 1.1rem; align-items: start; }
+@media (min-width: 980px) {
+  .layout { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.15fr); }
+  #out { position: sticky; top: 0.75rem; }
+}
+.card {
+  background: var(--sheet); border: 1px solid var(--line); border-radius: 1.25rem; padding: 1rem;
+  margin-bottom: 1rem; min-width: 0;
+}
+.slots { display: grid; gap: 0.75rem; }
+@media (min-width: 720px) { .slots, .grid2, .locks, .kpis { grid-template-columns: 1fr 1fr; } }
+.slots, .grid2, .locks, .kpis { display: grid; gap: 0.6rem; }
+.slot { background: rgba(243, 239, 230, 0.7); border: 1px solid var(--line); border-radius: 1rem; padding: 0.75rem; min-width: 0; }
+.field { display: block; min-width: 0; }
+.field span, .locks span, .kpi span { display: block; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 0.25rem; }
+input, select {
+  width: 100%; height: 2.7rem; border-radius: 0.8rem; border: 1px solid var(--line); background: var(--sheet);
+  padding: 0 0.7rem; min-width: 0;
+}
+input:focus, select:focus { outline: 2px solid var(--sea); border-color: var(--sea); }
+.locked { height: 2.7rem; border-radius: 0.8rem; border: 1px solid var(--line); background: var(--paper); display: flex; align-items: center; justify-content: space-between; padding: 0 0.7rem; }
+.locked span { color: var(--brass); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.big { font-size: 2rem; font-weight: 650; color: var(--navy); margin: 0.5rem 0 0.15rem; }
+.field em { font-style: normal; color: var(--brass); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; margin-left: 0.35rem; }
+.grid2 > button, #form .card > button.ghost { border: 1px solid var(--line); background: var(--sheet); color: var(--navy); border-radius: 1rem; padding: 0.7rem 0.8rem; text-align: left; }
+.grid2 > button.on { background: var(--navy); color: var(--sheet); border-color: var(--navy); }
+button.ghost { margin-top: 0.45rem; background: transparent; border: 0; color: var(--sea); text-align: left; padding: 0; }
+.warn { color: var(--danger); font-size: 0.8rem; margin-top: 0.3rem; }
+.route-line { margin-top: 0.8rem; color: var(--navy); font-weight: 650; }
+.seg { display: flex; flex-wrap: wrap; background: var(--paper-deep); border-radius: 1rem; padding: 0.2rem; margin: 0.8rem 0; max-width: 100%; }
+.seg button { border: 0; background: transparent; border-radius: 999px; padding: 0.4rem 0.75rem; }
+.seg button.on { background: var(--navy); color: var(--sheet); }
+.locks div { background: var(--paper); border: 1px solid var(--line); border-radius: 0.8rem; padding: 0.5rem 0.7rem; }
+.locks strong { color: var(--navy); }
+.check { display: flex; gap: 0.45rem; align-items: flex-start; margin-top: 0.55rem; font-size: 0.92rem; }
+.check input { width: 1rem; height: 1rem; margin-top: 0.15rem; accent-color: var(--sea); }
+.kpi { border: 1px solid var(--line); background: var(--sheet); border-radius: 1rem; padding: 0.7rem 0.8rem; min-width: 0; }
+.kpi.sea { background: var(--sea); color: var(--sheet); border-color: var(--sea); }
+.kpi.sea span, .kpi.sea em { color: rgba(255, 253, 248, 0.82); }
+.kpi strong { display: block; font-size: 1rem; }
+.kpi em { font-style: normal; color: var(--muted); font-size: 0.78rem; }
+.sheet-h, .driver-h, .steps li { display: flex; justify-content: space-between; gap: 0.8rem; align-items: flex-start; }
+.actions { display: flex; gap: 0.4rem; }
+.layout, #form, #out, .card, .slot, .scroll, .kpis { min-width: 0; }
+.scroll { overflow-x: auto; margin-top: 0.8rem; max-width: 100%; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 36rem; }
+th { text-align: left; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 0.4rem 0.45rem; }
+td { border-top: 1px solid var(--line); padding: 0.45rem; vertical-align: top; }
+.sub { display: block; color: var(--muted); font-size: 0.75rem; }
+.mid { background: rgba(243, 239, 230, 0.8); font-weight: 700; color: var(--navy); }
+.total { background: var(--navy); color: var(--sheet); font-weight: 700; }
+.total td { border-color: transparent; }
+.strong { font-weight: 700; }
+.danger { color: var(--danger); }
+.broker { border-radius: 1rem; padding: 0.75rem; margin-top: 0.6rem; }
+.broker.good { background: var(--sea-soft); }
+.broker.bad { background: var(--danger-soft); }
+.alert { background: var(--danger-soft); color: var(--danger); border-radius: 0.8rem; padding: 0.6rem 0.8rem; margin-bottom: 0.8rem; }
+.bars { display: flex; align-items: flex-end; gap: 0.25rem; margin-top: 0.6rem; }
+.bar { flex: 1; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0; }
+.bar i { display: block; width: 100%; border-radius: 0.35rem 0.35rem 0 0; background: var(--paper-deep); }
+.bar.best i { background: var(--sea); }
+.bar.now i { background: var(--navy); }
+.bar span { font-size: 0.68rem; color: var(--muted); }
+.drivers { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.8rem; }
+.track { height: 0.45rem; background: var(--paper); border-radius: 999px; overflow: hidden; }
+.track i { display: block; height: 100%; background: var(--navy); }
+.steps { list-style: none; padding: 0; margin: 0; }
+.steps li { border-bottom: 1px solid var(--line); padding: 0.55rem 0; }
+.steps strong { color: var(--navy); }
+.steps p { color: var(--muted); font-size: 0.8rem; }
+@media print {
+  .presets, #form, .actions, .bars, .drivers, .steps { display: none !important; }
+  #out { position: static; }
+  body, .card { background: white; }
+}
+
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+(function(){var e=[{name:`Madre de Deus`,uf:`BA`,pda:7e4,operation:2,queue:1,note:`Porto próprio Acelen`},{name:`Aratu`,uf:`BA`,pda:45e3,operation:1.2,queue:.5,note:`Baía de Todos os Santos`},{name:`Suape`,uf:`PE`,pda:65e3,operation:1.5,queue:2,note:`Terminal CIPS`},{name:`Cabedelo`,uf:`PB`,pda:6e4,operation:1.5,queue:1,note:`Porto pequeno`},{name:`Fortaleza`,uf:`CE`,pda:68e3,operation:2,queue:2,note:`Pecém`},{name:`Guamaré`,uf:`RN`,pda:5e4,operation:1.63,queue:0,note:`Perna curta saindo de Fortaleza`},{name:`Itaqui`,uf:`MA`,pda:75e3,operation:2,queue:6,note:`Filas longas`},{name:`Vila do Conde`,uf:`PA`,pda:9e4,operation:2,queue:3,note:`Alunorte`},{name:`Belém`,uf:`PA`,pda:85e3,operation:2,queue:2,note:`Miramar / CDP`},{name:`Itacoatiara`,uf:`AM`,pda:33e4,operation:3,queue:4,note:`Rio Amazonas — PDA alto`},{name:`Manaus`,uf:`AM`,pda:35e4,operation:3,queue:5,note:`Porto fluvial`},{name:`Maceió`,uf:`AL`,pda:62e3,operation:1.5,queue:1,note:`Terminal Alagoas`},{name:`Santos`,uf:`SP`,pda:8e4,operation:2,queue:3,note:`Maior porto do Brasil`},{name:`Rio de Janeiro`,uf:`RJ`,pda:78e3,operation:2,queue:2,note:`Ilha d'Água`},{name:`Paranaguá`,uf:`PR`,pda:72e3,operation:2,queue:2,note:`Cattalini`},{name:`Rio Grande`,uf:`RS`,pda:7e4,operation:2,queue:2,note:`Referência de mesa`},{name:`Houston`,uf:`EUA`,pda:95e3,operation:2,queue:1,note:`Longo curso`},{name:`ARA (Europa)`,uf:`NL/BE`,pda:85e3,operation:1.5,queue:1,note:`Amsterdam–Rotterdam–Antwerp`},{name:`Singapura`,uf:`SG`,pda:55e3,operation:1,queue:.5,note:`Hub`}],t=Object.fromEntries(e.map(e=>[e.name,e])),n=[[`Madre de Deus`,`Suape`,402],[`Madre de Deus`,`Itaqui`,1189],[`Madre de Deus`,`Belém`,1589],[`Madre de Deus`,`Aratu`,13],[`Madre de Deus`,`Vila do Conde`,1583],[`Madre de Deus`,`Santos`,949],[`Madre de Deus`,`Rio Grande`,1471],[`Madre de Deus`,`Fortaleza`,650],[`Madre de Deus`,`Cabedelo`,550],[`Madre de Deus`,`Maceió`,304],[`Madre de Deus`,`Itacoatiara`,3e3],[`Madre de Deus`,`Manaus`,3200],[`Madre de Deus`,`Paranaguá`,900],[`Madre de Deus`,`Rio de Janeiro`,700],[`Madre de Deus`,`Houston`,5200],[`Madre de Deus`,`ARA (Europa)`,4800],[`Madre de Deus`,`Singapura`,9500],[`Aratu`,`Vila do Conde`,1583],[`Aratu`,`Santos`,936],[`Aratu`,`Maceió`,291],[`Suape`,`Itaqui`,787],[`Suape`,`Fortaleza`,400],[`Suape`,`Belém`,1200],[`Suape`,`Cabedelo`,100],[`Fortaleza`,`Guamaré`,157],[`Fortaleza`,`Itaqui`,360],[`Itaqui`,`Belém`,400],[`Itaqui`,`Vila do Conde`,550],[`Vila do Conde`,`Belém`,42],[`Belém`,`Itacoatiara`,740],[`Belém`,`Manaus`,1800],[`Itacoatiara`,`Manaus`,250],[`Santos`,`Paranaguá`,180],[`Santos`,`Rio de Janeiro`,200],[`Santos`,`Itaqui`,1800],[`Maceió`,`Santos`,1155]],r=new Map;for(let[e,t,i]of n)r.set(`${e}|${t}`,i),r.has(`${t}|${e}`)||r.set(`${t}|${e}`,i);function i(e,t){return!e||!t||e===t?e===t?0:null:r.get(`${e}|${t}`)??null}function a(e){return t[e]}var o=[{id:`saronic`,name:`Saronic Wind`,type:`MR`,dwt:45e3,hirePerDay:21e3,ebnPerDay:1050,ecoSpeed:12.5,consLaden:19.33,consLoading:3.8,consDischarge:7.2,consIdle:1.9,consMgoSea:.1,status:`TC EBN`},{id:`nord`,name:`Nord Majestic`,type:`MR`,dwt:45e3,hirePerDay:36e3,ebnPerDay:1050,ecoSpeed:12,consLaden:22,consLoading:5,consDischarge:5,consIdle:5,consMgoSea:0,status:`TC ativo`},{id:`pets`,name:`Pets`,type:`MR`,dwt:42e3,hirePerDay:2e4,ebnPerDay:1050,ecoSpeed:12,consLaden:20,consLoading:4.5,consDischarge:4.5,consIdle:4.5,consMgoSea:0,status:`TC`},{id:`courage`,name:`Courage`,type:`LR1`,dwt:65e3,hirePerDay:34e3,ebnPerDay:1050,ecoSpeed:13,consLaden:28,consLoading:6,consDischarge:6,consIdle:6,consMgoSea:0,status:`Oferta broker`},{id:`onyx`,name:`Pacific Onyx`,type:`MR`,dwt:48e3,hirePerDay:32e3,ebnPerDay:1050,ecoSpeed:12,consLaden:23,consLoading:5,consDischarge:5,consIdle:5,consMgoSea:0,status:`Oferta broker`},{id:`rider`,name:`Clean Rider`,type:`MR`,dwt:44e3,hirePerDay:3e4,ebnPerDay:1050,ecoSpeed:12,consLaden:21,consLoading:4.8,consDischarge:4.8,consIdle:4.8,consMgoSea:0,status:`Oferta broker`},{id:`mr`,name:`Genérico MR`,type:`MR`,dwt:45e3,hirePerDay:35e3,ebnPerDay:1050,ecoSpeed:12,consLaden:22,consLoading:5,consDischarge:5,consIdle:5,consMgoSea:0,status:`Referência`},{id:`lr1`,name:`Genérico LR1`,type:`LR1`,dwt:65e3,hirePerDay:4e4,ebnPerDay:1050,ecoSpeed:13,consLaden:28,consLoading:6,consDischarge:6,consIdle:6,consMgoSea:0,status:`Referência`}],s=.035,c=12.5,l={saronic:{hirePerDay:21e3,bunkerPerDay:19.33*770,ebnPerDay:1050,portPerDay:8e3,crewPerDay:0},nord:{hirePerDay:36e3,bunkerPerDay:16940,ebnPerDay:1050,portPerDay:8e3,crewPerDay:0},pets:{hirePerDay:2e4,bunkerPerDay:15400,ebnPerDay:1050,portPerDay:7e3,crewPerDay:0},courage:{hirePerDay:34e3,bunkerPerDay:21560,ebnPerDay:1050,portPerDay:9e3,crewPerDay:0},onyx:{hirePerDay:32e3,bunkerPerDay:17710,ebnPerDay:1050,portPerDay:8e3,crewPerDay:0},rider:{hirePerDay:3e4,bunkerPerDay:16170,ebnPerDay:1050,portPerDay:7500,crewPerDay:0},mr:{hirePerDay:35e3,bunkerPerDay:16940,ebnPerDay:1050,portPerDay:8e3,crewPerDay:0},lr1:{hirePerDay:4e4,bunkerPerDay:21560,ebnPerDay:1050,portPerDay:9e3,crewPerDay:0}};function u(e){return Number.isFinite(e)?e:0}function d(){return{port:null,miles:0,days:0,pda:0}}function f(e,t){let n=a(e),r=t?i(t,e)??0:0;return{port:e,miles:r,days:r>0?r/(c*24):0,pda:n?.pda??0}}function p(e=`Madre de Deus`){return{port:e,miles:0,days:0,pda:a(e)?.pda??0}}function m(e){return e.filter((e,t)=>!!e.port)}function h(e,t){let n=l[e]??l.saronic;return{...t,vesselId:e,...n}}function g(e){let t=m(e.calls),n=t[0],r=t.slice(1),i=t.map(e=>e.port||`—`),a=r.reduce((e,t)=>e+u(t.miles),0),o=r.reduce((e,t)=>e+u(t.days),0),c=u(n?.pda),l=r.reduce((e,t)=>e+u(t.pda),0),d=[];n?.port||d.push(`Informe o porto de origem.`),r.length===0&&d.push(`Informe ao menos um porto de destino.`),r.forEach((e,n)=>{let r=t[n]?.port||`origem`;u(e.miles)<=0&&d.push(`Sem milhas de referência em ${r} → ${e.port}. O tempo desta perna ficou em branco.`)});let f=[`Valores meramente estimados, sujeitos a confirmação.`,`Milhas, tempos e PDA são referência do banco e podem ser editados.`,`IOF de 3,5% incide sobre o hire e sobre a tripulação remetida ao exterior.`];if(e.mode===`tc`){let t=u(e.hirePerDay),n=u(e.bunkerPerDay),r=u(e.ebnPerDay),p=u(e.portPerDay),m=u(e.crewPerDay),h=t*s,g=e.crewRemitted?m*s:0,v=h+g,y=t+n+r+p+m+v,b=[{label:`Hire`,detail:`USD/dia · referência do cadastro`,usd:t},{label:`Bunker`,detail:`USD/dia · referência do cadastro`,usd:n},{label:`EBN fee`,detail:`USD/dia · referência do cadastro`,usd:r},{label:`Despesas portuárias`,detail:`USD/dia · referência do cadastro`,usd:p},{label:`Tripulação brasileira`,detail:e.crewRemitted?`Entra no custo e no IOF`:`Entra no custo; fora do IOF`,usd:m},{label:`IOF sobre hire`,detail:`3,5% travado`,usd:h,emphasis:`iof`},{label:`IOF sobre tripulação`,detail:e.crewRemitted?`Remetida ao exterior`:`Não remetida — IOF não aplicado`,usd:g,emphasis:`iof`},{label:`Custo diário estimado`,detail:`Hire + bunker + EBN + porto + tripulação + IOF`,usd:y,emphasis:`total`}];return o>0&&b.push({label:`Projeção da viagem`,detail:`${_(o,2)} dias de rota × custo diário · não substitui o resultado por dia`,usd:y*o}),f.unshift(`No Time Charter os valores de cadastro são diários.`),{route:i,totalMiles:a,totalDays:o,pdaOrigin:c,pdaDest:l,mode:`tc`,modality:e.modality,title:`Time Charter`,branch:[`Time Charter`,`Custo por dia`],formula:`Hire + Bunker + EBN fee + Despesas portuárias + Tripulação + IOF`,lines:b,total:y,totalLabel:`Custo diário estimado`,iof:v,warnings:d,notes:f}}let p=e.modality;if(p===`lumpsum`){let t=u(e.lumpsum),s=t+c+l;return{route:i,totalMiles:a,totalDays:o,pdaOrigin:c,pdaDest:l,mode:`spot`,modality:p,title:`Spot · Lumpsum`,branch:[`Spot`,`Lumpsum`],formula:`Lumpsum + PDA de origem + PDA de destino`,lines:[{label:`Lumpsum`,detail:`Frete estimado informado`,usd:t},{label:`PDA origem`,detail:n?.port||`—`,usd:c},{label:`PDA destino`,detail:r.map(e=>e.port).filter(Boolean).join(`, `)||`—`,usd:l},{label:`Frete estimado`,detail:`Lumpsum + PDAs`,usd:s,emphasis:`total`}],total:s,totalLabel:`Frete estimado`,iof:0,warnings:d,notes:f}}let h=u(e.portExpenses);if(p===`worldscale`){let t=u(e.qtyMt)*(u(e.worldscale)/100)*u(e.flatRate),n=t+h;return{route:i,totalMiles:a,totalDays:o,pdaOrigin:c,pdaDest:l,mode:`spot`,modality:p,title:`Spot · Worldscale`,branch:[`Spot`,`Worldscale`],formula:`Quantidade (t) × (Worldscale / 100) × Flat rate + despesas portuárias`,lines:[{label:`Frete Worldscale`,detail:`${_(e.qtyMt,0)} t × (${_(e.worldscale,2)} / 100) × ${_(e.flatRate,2)}`,usd:t},{label:`Despesas portuárias`,detail:`Informadas na operação`,usd:h},{label:`Frete estimado`,detail:`Worldscale + despesas`,usd:n,emphasis:`total`}],total:n,totalLabel:`Frete estimado`,iof:0,warnings:d,notes:f}}if(p===`bbl`){let t=u(e.qtyBbl)*u(e.usdPerBbl),n=t+h;return{route:i,totalMiles:a,totalDays:o,pdaOrigin:c,pdaDest:l,mode:`spot`,modality:p,title:`Spot · US$/bbl`,branch:[`Spot`,`US$/bbl`],formula:`Quantidade (bbl) × US$/bbl + despesas portuárias`,lines:[{label:`Frete por barril`,detail:`${_(e.qtyBbl,0)} bbl × ${_(e.usdPerBbl,2)}`,usd:t},{label:`Despesas portuárias`,detail:`Informadas na operação`,usd:h},{label:`Frete estimado`,detail:`Barril + despesas`,usd:n,emphasis:`total`}],total:n,totalLabel:`Frete estimado`,iof:0,warnings:d,notes:f}}let g=u(e.qtyM3)*u(e.usdPerM3),v=g+h;return{route:i,totalMiles:a,totalDays:o,pdaOrigin:c,pdaDest:l,mode:`spot`,modality:`m3`,title:`Spot · US$/m³`,branch:[`Spot`,`US$/m³`],formula:`Quantidade (m³) × US$/m³ + despesas portuárias`,lines:[{label:`Frete por m³`,detail:`${_(e.qtyM3,0)} m³ × ${_(e.usdPerM3,2)}`,usd:g},{label:`Despesas portuárias`,detail:`Informadas na operação`,usd:h},{label:`Frete estimado`,detail:`Metro cúbico + despesas`,usd:v,emphasis:`total`}],total:v,totalLabel:`Frete estimado`,iof:0,warnings:d,notes:f}}function _(e,t){return u(e).toLocaleString(`pt-BR`,{maximumFractionDigits:t,minimumFractionDigits:t})}function v(){let e=f(`Suape`,`Madre de Deus`);return{calls:[p(),e,d(),d()],mode:`spot`,modality:`lumpsum`,lumpsum:42e4,qtyMt:45e3,worldscale:120,flatRate:18,qtyBbl:3e5,usdPerBbl:1.85,qtyM3:32e3,usdPerM3:14,portExpenses:e.pda+(a(`Madre de Deus`)?.pda??0),vesselId:`saronic`,...l.saronic,crewRemitted:!1}}function y(){let e=v(),t=f(`Houston`,`Madre de Deus`);return{...e,modality:`worldscale`,calls:[p(),t,d(),d()],qtyMt:45e3,worldscale:115,flatRate:22.5,portExpenses:t.pda+(a(`Madre de Deus`)?.pda??0)}}function b(){let e=v(),t=f(`Suape`,`Madre de Deus`),n=f(`Fortaleza`,`Suape`),r=f(`Guamaré`,`Fortaleza`);return{...e,mode:`tc`,vesselId:`saronic`,...l.saronic,crewPerDay:3750,crewRemitted:!1,calls:[p(),t,n,r]}}var x=`simulador-frete-fluxo-html`;function S(e){let t=Math.abs(e).toLocaleString(`pt-BR`,{minimumFractionDigits:2,maximumFractionDigits:2});return`${e<-.004?`−`:``}US$ ${t}`}function C(e,t=2){return e.toLocaleString(`pt-BR`,{minimumFractionDigits:t,maximumFractionDigits:t})}function w(e){let t=e.trim().replace(/\s/g,``);return!t||t===`-`||t===`,`||t===`.`?0:t.includes(`,`)&&t.includes(`.`)?t.lastIndexOf(`,`)>t.lastIndexOf(`.`)?Number(t.replace(/\./g,``).replace(`,`,`.`))||0:Number(t.replace(/,/g,``))||0:t.includes(`,`)?Number(t.replace(`,`,`.`))||0:Number(t)||0}var T=v();function E(){try{let e=localStorage.getItem(x);if(!e)return;let t=JSON.parse(e);t?.calls?.length===4&&t.mode&&(T=t)}catch{}}function D(){localStorage.setItem(x,JSON.stringify(T))}function O(e,t,n,r){return`<label class="field"><span>${e} <em>${r}</em></span><input data-key="${t}" value="${String(n).replace(`.`,`,`)}" inputmode="decimal" /></label>`}function k(e,t,n,r){return`<label class="field"><span>${e}</span><input data-call="${t}" data-ckey="${n}" value="${String(r).replace(`.`,`,`)}" inputmode="decimal" /></label>`}function A(t,n){return(n?`<option value="">— sem porto</option>`:``)+e.map(e=>`<option value="${e.name}"${e.name===t?` selected`:``}>${e.name} · ${e.uf}</option>`).join(``)}function j(e){let t=T.calls.map((e,t)=>{let n=[`Origem`,`Destino 1`,`Destino 2`,`Destino 3`],r=e.port?a(e.port):void 0;return`<div class="slot"><p class="kicker">${n[t]}</p>
+      <select data-port="${t}">${A(e.port,t>0)}</select>
+      ${e.port?`<div class="grid2">
+        ${t>0?k(`Milhas`,t,`miles`,e.miles):``}
+        ${t>0?k(`Dias`,t,`days`,e.days):``}
+        ${k(`PDA (USD)`,t,`pda`,e.pda)}
+      </div>`:``}
+      ${r?`<p class="note">${r.note}</p>`:``}
+    </div>`}).join(``),n=T.mode===`spot`,r=``;n&&T.modality===`lumpsum`&&(r=O(`Lumpsum (USD)`,`lumpsum`,T.lumpsum,`Manual`)),n&&T.modality===`worldscale`&&(r=`<div class="grid2">${O(`Quantidade (t)`,`qtyMt`,T.qtyMt,`Manual`)}${O(`Worldscale`,`worldscale`,T.worldscale,`Manual`)}${O(`Flat rate (USD/t)`,`flatRate`,T.flatRate,`Manual`)}</div>`),n&&T.modality===`bbl`&&(r=`<div class="grid2">${O(`Quantidade (bbl)`,`qtyBbl`,T.qtyBbl,`Manual`)}${O(`US$/bbl`,`usdPerBbl`,T.usdPerBbl,`Manual`)}</div>`),n&&T.modality===`m3`&&(r=`<div class="grid2">${O(`Quantidade (m³)`,`qtyM3`,T.qtyM3,`Manual`)}${O(`US$/m³`,`usdPerM3`,T.usdPerM3,`Manual`)}</div>`),n&&T.modality!==`lumpsum`&&(r+=O(`Despesas portuárias (USD)`,`portExpenses`,T.portExpenses,`Manual`),r+=`<button type="button" data-bank="1" class="ghost">Usar PDA do banco (${S(e.pdaOrigin+e.pdaDest)})</button>`);let i=[[`lumpsum`,`Lumpsum`],[`worldscale`,`Worldscale`],[`bbl`,`US$/bbl`],[`m3`,`US$/m³`]].map(([e,t])=>`<button type="button" data-mod="${e}" class="${T.modality===e?`on`:``}">${t}</button>`).join(``),s=`<label class="field"><span>Navio</span><select id="vessel">${o.map(e=>`<option value="${e.id}"${e.id===T.vesselId?` selected`:``}>${e.name} · ${e.type}</option>`).join(``)}</select></label>
+    <div class="grid2">
+      ${O(`Hire (USD/dia)`,`hirePerDay`,T.hirePerDay,`Banco`)}
+      ${O(`Bunker (USD/dia)`,`bunkerPerDay`,T.bunkerPerDay,`Banco`)}
+      ${O(`EBN fee (USD/dia)`,`ebnPerDay`,T.ebnPerDay,`Banco`)}
+      ${O(`Despesas portuárias (USD/dia)`,`portPerDay`,T.portPerDay,`Banco`)}
+      ${O(`Tripulação (USD/dia)`,`crewPerDay`,T.crewPerDay,`Se aplicável`)}
+    </div>
+    <div class="broker">
+      <p><strong>A tripulação brasileira será remetida ao exterior?</strong></p>
+      <p class="note">Sim inclui a tripulação na base do IOF. Não mantém o custo, sem IOF sobre ela.</p>
+      <div class="seg">
+        <button type="button" data-crew="1" class="${T.crewRemitted?`on`:``}">Sim, incluir no IOF</button>
+        <button type="button" data-crew="0" class="${T.crewRemitted?``:`on`}">Não incluir</button>
+      </div>
+    </div>
+    <div class="locks"><div><span>IOF</span><strong>3,50% sobre hire e tripulação remetida</strong></div></div>`;return`<section class="card"><p class="kicker">Obrigatório</p><h2>Informações da rota</h2><div class="slots">${t}</div>
+    <p class="route-line">${e.route.filter(e=>e&&e!==`—`).join(` → `)} · ${C(e.totalMiles,0)} NM · ${C(e.totalDays,2)} dias</p></section>
+    <section class="card"><p class="kicker">Toda operação gera uma estimativa</p><h2>Tipo de operação</h2>
+      <div class="grid2">
+        <button type="button" data-mode="spot" class="${n?`on`:``}">Spot</button>
+        <button type="button" data-mode="tc" class="${n?``:`on`}">Time Charter</button>
+      </div>
+      ${n?`<div class="seg">${i}</div>`:``}
+    </section>
+    <section class="card"><h2>${n?`Dados do frete spot`:`Time Charter por dia`}</h2>${n?r:s}</section>`}function M(e){let t=e.lines.map(e=>`<tr class="${e.emphasis===`total`?`total`:``}"><td>${e.label}<span class="sub">${e.detail}</span></td><td class="num">${S(e.usd)}</td></tr>`).join(``),n=e.warnings.map(e=>`<p>${e}</p>`).join(``);return`<article class="card sheet">
+    <p class="kicker">Resultado final · estimativa</p>
+    <h2>${e.title}</h2>
+    <p class="note">${e.route.join(` → `)}</p>
+    <p class="big num">${S(e.total)}</p>
+    <p class="note">${e.totalLabel}</p>
+    <p>${e.formula}</p>
+    ${n?`<div class="alert">${n}</div>`:``}
+    <div class="scroll"><table><tbody>${t}</tbody></table></div>
+    <ul class="steps">${e.notes.map(e=>`<li>${e}</li>`).join(``)}</ul>
+    <button type="button" id="csv">Exportar CSV</button>
+  </article>`}var N=g(T);function P(e){let t=document.getElementById(`form`),n=document.getElementById(`out`);t&&n&&(N=g(T),e&&(t.innerHTML=j(N)),n.innerHTML=M(N),D())}function F(){E();let e=document.getElementById(`app`);e&&(e.innerHTML=`<header><div class="brand"><span class="mark"></span><div><p class="kicker">Acelen Shipping · arquivo local, sem login</p><h1>Simulador de frete Marítimo - Shipping</h1></div></div>
+    <p class="lead">Rota, depois Spot ou Time Charter. Lumpsum, Worldscale, US$/bbl, US$/m³ ou custo diário de time charter. Abre em qualquer navegador.</p></header>
+    <div class="presets">
+      <button type="button" data-preset="lump">Spot · Lumpsum Suape</button>
+      <button type="button" data-preset="ws">Spot · Worldscale Houston</button>
+      <button type="button" data-preset="tc">Time Charter · Saronic</button>
+    </div>
+    <div class="layout"><div id="form"></div><div id="out"></div></div>`,e.addEventListener(`input`,e=>{let t=e.target;if(t instanceof HTMLInputElement&&(t.dataset.key&&(T[t.dataset.key]=w(t.value),P(!1)),t.dataset.call&&t.dataset.ckey)){let e=Number(t.dataset.call),n=t.dataset.ckey;T.calls=T.calls.map((r,i)=>i===e?{...r,[n]:w(t.value)}:r),P(!1)}}),e.addEventListener(`change`,e=>{let t=e.target;if(t instanceof HTMLSelectElement&&t.id===`vessel`&&(T=h(t.value,T),P(!0)),t instanceof HTMLSelectElement&&t.dataset.port){let e=Number(t.dataset.port),n=t.value,r=T.calls.map(e=>({...e}));if(n)e===0?r[0]=p(n):r[e]=f(n,[...r.slice(0,e)].reverse().find(e=>e.port)?.port??r[0].port);else{if(e===0)return;r[e]=d()}let a=r.findIndex((t,n)=>n>e&&t.port);if(a>0&&r[a].port){let e=[...r.slice(0,a)].reverse().find(e=>e.port)?.port;if(e){let t=i(e,r[a].port);t!=null&&(r[a]={...r[a],miles:t,days:t/300})}}T={...T,calls:r},P(!0)}}),e.addEventListener(`click`,e=>{let t=e.target.closest(`button`);if(t&&(t.dataset.preset===`lump`&&(T=v()),t.dataset.preset===`ws`&&(T=y()),t.dataset.preset===`tc`&&(T=b()),(t.dataset.mode===`spot`||t.dataset.mode===`tc`)&&(T={...T,mode:t.dataset.mode}),(t.dataset.mod===`lumpsum`||t.dataset.mod===`worldscale`||t.dataset.mod===`bbl`||t.dataset.mod===`m3`)&&(T={...T,modality:t.dataset.mod}),t.dataset.crew&&(T={...T,crewRemitted:t.dataset.crew===`1`}),t.dataset.bank&&(T={...T,portExpenses:N.pdaOrigin+N.pdaDest}),(t.dataset.preset||t.dataset.mode||t.dataset.mod||t.dataset.crew||t.dataset.bank)&&P(!0),t.id===`csv`)){let e=[[`Tipo`,N.title],...N.lines.map(e=>[e.label,e.usd.toFixed(2)])].map(e=>e.map(e=>`"${e}"`).join(`;`)).join(`
+`),t=new Blob([`\uFEFF${e}`],{type:`text/csv;charset=utf-8`}),n=URL.createObjectURL(t),r=document.createElement(`a`);r.href=n,r.download=`estimativa-frete.csv`,r.click(),URL.revokeObjectURL(n)}}),P(!0))}F()})();
+</script>
+</body>
+</html>
